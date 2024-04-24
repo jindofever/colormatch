@@ -125,7 +125,7 @@ system_prompt = """
 	(10) Dark + Cool = Dark Winter
 	(11) Cool + Bright = True Winter
 	(12) Bright + Cool = Bright Winter
-	Step 7. Now repeat step 1 to 6 ten more times, and remember the result that you get each time. The most common one is their primary season and the second most common one is their secondary season."""
+	Step 7. Now repeat step 1 to 6 ten more times, and remember the result that you get each time. Of the ten please output the most common result as their primary season and the second most common result as their secondary season."""
 
 photo_array = ["./mandy1.jpg", "./mandy2.jpg", "./mandy3.jpg"]
 
