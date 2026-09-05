@@ -1,1 +1,2 @@
-anthropic==0.20.0
+openai==3.8.0
+Pillow==12.3.0
