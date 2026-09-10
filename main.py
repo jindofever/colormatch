@@ -1,18 +1,21 @@
-import os
 import base64
-from PIL import Image
-import io
-
+import os
+import sys
 
 from openai import OpenAI
 
-client = OpenAI()
+MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o")
+
+def get_client():
+	if not os.environ.get("OPENAI_API_KEY"):
+		sys.exit("OPENAI_API_KEY is not set. Export your key and re-run: export OPENAI_API_KEY=sk-...")
+	return OpenAI()
 
 def encode_image(image_path):
-  with open(image_path, "rb") as image_file:
-    return base64.b64encode(image_file.read()).decode('utf-8')
+	with open(image_path, "rb") as image_file:
+		return base64.b64encode(image_file.read()).decode('utf-8')
 
-def submit_image_prompt(image_path):
+def submit_image_prompt(image_path, client=None):
 	content = [
 		{
 			"type": "text",
@@ -33,8 +36,10 @@ def submit_image_prompt(image_path):
 			}
 		)
 
+	client = client or get_client()
+
 	response = client.chat.completions.create(
-		model="gpt-4-turbo",
+		model=MODEL,
 		messages=[
 			{
 				"role": "system",
@@ -132,7 +137,6 @@ photo_array = ["./mandy1.jpg", "./mandy2.jpg", "./mandy3.jpg"]
 prompt = "What is this client's season?"
 
 if __name__ == "__main__":
-	response = submit_image_prompt(photo_array)
-	new_prompt = response.choices[0].message.content
-	print(new_prompt)
-	# images = image_creation(photo_array, new_prompt)
+	images = sys.argv[1:] or photo_array
+	response = submit_image_prompt(images)
+	print(response.choices[0].message.content)
