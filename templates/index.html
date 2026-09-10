@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<meta name="theme-color" content="#f7f2ec">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<title>Color Match</title>
+	<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+	<main class="app">
+		<header>
+			<h1>Color Match</h1>
+			<p class="sub">Upload up to {{ max_images }} clear photos of your face in natural light to find your Korean color season.</p>
+		</header>
+
+		<form id="form">
+			<label class="picker" for="photos">
+				<span class="picker-title">Take or choose photos</span>
+				<span class="picker-hint">Face only, no filters, up to {{ max_images }}</span>
+				<input id="photos" name="photos" type="file" accept="image/*" multiple>
+			</label>
+
+			<ul id="previews" class="previews"></ul>
+
+			<button id="submit" type="submit" disabled>Analyze my colors</button>
+		</form>
+
+		<p id="error" class="error" hidden></p>
+
+		<section id="result" class="result" hidden>
+			<h2>Your analysis</h2>
+			<ul id="swatches" class="swatches"></ul>
+			<div id="analysis" class="analysis"></div>
+		</section>
+	</main>
+
+	<script>
+		const MAX_IMAGES = {{ max_images }};
+		const form = document.getElementById('form');
+		const input = document.getElementById('photos');
+		const previews = document.getElementById('previews');
+		const submit = document.getElementById('submit');
+		const error = document.getElementById('error');
+		const result = document.getElementById('result');
+		const analysis = document.getElementById('analysis');
+		const swatches = document.getElementById('swatches');
+
+		function showError(message) {
+			error.textContent = message;
+			error.hidden = !message;
+		}
+
+		input.addEventListener('change', () => {
+			previews.innerHTML = '';
+			const files = Array.from(input.files || []);
+			showError(files.length > MAX_IMAGES ? `Only the first ${MAX_IMAGES} photos will be used.` : '');
+			files.slice(0, MAX_IMAGES).forEach((file) => {
+				const item = document.createElement('li');
+				const img = document.createElement('img');
+				img.src = URL.createObjectURL(file);
+				img.alt = file.name;
+				img.onload = () => URL.revokeObjectURL(img.src);
+				item.appendChild(img);
+				previews.appendChild(item);
+			});
+			submit.disabled = files.length === 0;
+		});
+
+		form.addEventListener('submit', async (event) => {
+			event.preventDefault();
+			const files = Array.from(input.files || []).slice(0, MAX_IMAGES);
+			if (!files.length) return;
+
+			showError('');
+			result.hidden = true;
+			submit.disabled = true;
+			submit.textContent = 'Analyzing…';
+
+			const body = new FormData();
+			files.forEach((file) => body.append('photos', file));
+
+			try {
+				const response = await fetch('/api/analyze', { method: 'POST', body });
+				const data = await response.json();
+				if (!response.ok) {
+					throw new Error(typeof data.detail === 'string' ? data.detail : 'Something went wrong.');
+				}
+				analysis.textContent = data.analysis;
+				swatches.innerHTML = '';
+				(data.colors || []).forEach((color) => {
+					const item = document.createElement('li');
+					item.style.background = color;
+					item.innerHTML = `<span>${color}</span>`;
+					swatches.appendChild(item);
+				});
+				result.hidden = false;
+				result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			} catch (err) {
+				showError(err.message);
+			} finally {
+				submit.disabled = false;
+				submit.textContent = 'Analyze my colors';
+			}
+		});
+	</script>
+</body>
+</html>
