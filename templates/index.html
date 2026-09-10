@@ -47,9 +47,18 @@
 		const analysis = document.getElementById('analysis');
 		const swatches = document.getElementById('swatches');
 
+		let analyzing = false;
+
 		function showError(message) {
 			error.textContent = message;
 			error.hidden = !message;
+		}
+
+		function setAnalyzing(active) {
+			analyzing = active;
+			input.disabled = active;
+			submit.disabled = active || !(input.files || []).length;
+			submit.textContent = active ? 'Analyzing…' : 'Analyze my colors';
 		}
 
 		input.addEventListener('change', () => {
@@ -65,18 +74,18 @@
 				item.appendChild(img);
 				previews.appendChild(item);
 			});
-			submit.disabled = files.length === 0;
+			submit.disabled = analyzing || files.length === 0;
 		});
 
 		form.addEventListener('submit', async (event) => {
 			event.preventDefault();
+			if (analyzing) return;
 			const files = Array.from(input.files || []).slice(0, MAX_IMAGES);
 			if (!files.length) return;
 
 			showError('');
 			result.hidden = true;
-			submit.disabled = true;
-			submit.textContent = 'Analyzing…';
+			setAnalyzing(true);
 
 			const body = new FormData();
 			files.forEach((file) => body.append('photos', file));
@@ -100,8 +109,7 @@
 			} catch (err) {
 				showError(err.message);
 			} finally {
-				submit.disabled = false;
-				submit.textContent = 'Analyze my colors';
+				setAnalyzing(false);
 			}
 		});
 	</script>
