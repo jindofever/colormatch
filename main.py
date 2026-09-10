@@ -1,4 +1,5 @@
 import os
+import sys
 import base64
 from PIL import Image
 import io
@@ -6,13 +7,19 @@ import io
 
 from openai import OpenAI
 
-client = OpenAI()
+_client = None
+
+def get_client():
+	global _client
+	if _client is None:
+		_client = OpenAI()
+	return _client
 
 def encode_image(image_path):
   with open(image_path, "rb") as image_file:
     return base64.b64encode(image_file.read()).decode('utf-8')
 
-def submit_image_prompt(image_path):
+def submit_image_bytes(images):
 	content = [
 		{
 			"type": "text",
@@ -20,9 +27,9 @@ def submit_image_prompt(image_path):
 		}
 	]
 
-	for i in image_path:
+	for image_bytes in images:
 
-		base64_image = encode_image(i)
+		base64_image = base64.b64encode(image_bytes).decode('utf-8')
 
 		content.append(
 			{
@@ -33,7 +40,7 @@ def submit_image_prompt(image_path):
 			}
 		)
 
-	response = client.chat.completions.create(
+	response = get_client().chat.completions.create(
 		model="gpt-4-turbo",
 		messages=[
 			{
@@ -49,6 +56,18 @@ def submit_image_prompt(image_path):
 	)
 
 	return response
+
+def submit_image_prompt(image_path):
+	images = []
+	for i in image_path:
+		with open(i, "rb") as image_file:
+			images.append(image_file.read())
+	return submit_image_bytes(images)
+
+def analyze_images(images):
+	"""Return the season analysis text for a list of raw image bytes."""
+	response = submit_image_bytes(images)
+	return response.choices[0].message.content
 
 # trying to get gpt to create pictures for me
 # def image_creation(image_path, prompt):
@@ -132,7 +151,7 @@ photo_array = ["./mandy1.jpg", "./mandy2.jpg", "./mandy3.jpg"]
 prompt = "What is this client's season?"
 
 if __name__ == "__main__":
-	response = submit_image_prompt(photo_array)
+	response = submit_image_prompt(sys.argv[1:] or photo_array)
 	new_prompt = response.choices[0].message.content
 	print(new_prompt)
 	# images = image_creation(photo_array, new_prompt)
